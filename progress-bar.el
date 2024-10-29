@@ -118,25 +118,52 @@ Functions get called with a progress bar event, and a progress-bar instance.
 Progress bar events can be either `started', `updated' or `completed'")
 
 (defclass progress-bar ()
-  ((status-message nil
+  ((status-message :initform nil
+                   :initarg :status-message
+                   :accessor progress-bar-status-message
                    :documentation "The status-message can be either a status-formatter or a list of three status-formatters, the first applied when the progress-bar starts, the second applied for each element processed, the third when the progress-bar completes.
 A status-formatter is either a string or a function that takes a progress-bar instance and returns a string.")
-   (total-steps nil :type integer)
-   (current-step 0 :type integer)
-   (min-time progress-bar-min-time
-             :type float
-             :documentation "The minimum time interval between progress bar displays.")
-   (min-change progress-bar-min-change
-               :type integer
-               :documentation "The minimum percentage change between progress bar displays.")
-   (data nil :documentation "Extra data stored in the progress-bar instance for convenience.
+   (total-steps :type integer
+                :initarg :total-steps
+                :accessor progress-bar-total-steps)
+   (current-step :initform 0
+                 :type integer
+                 :initarg :current-step
+                 :accessor progress-bar-current-step)
+   (min-time ;;:initform progress-bar-min-time
+    :type float
+    :initarg :min-time
+    :accessor progress-bar-min-time
+    :documentation "The minimum time interval between progress bar displays.")
+   (min-change ;;:initform progress-bar-min-change
+    :initarg :min-change
+    :type integer
+    :accessor progress-bar-min-change
+    :documentation "The minimum percentage change between progress bar displays.")
+   (data :initform nil
+         :accessor progress-bar-data
+         :documentation "Extra data stored in the progress-bar instance for convenience.
 Often contains current element being processed.")
-   (created-time (float-time))
-   (displayed-time 0.0
+   (created-time :initform (float-time)
+                 :accessor progress-bar-created-time)
+   (displayed-time :initform 0.0
                    :type float
+                   :accessor progress-bar-displayed-time
                    :documentation "Time of last display.")
-   (displayed-percentage 0 :type integer
+   (displayed-percentage :initform 0 :type integer
+                         :accessor progress-bar-displayed-percentage
                          :documentation "Last percentage displayed.")))
+
+(cl-defun make-progress-bar (&key status-message total-steps (current-step 0)
+                                  (min-time progress-bar-min-time)
+                                  (min-change progress-bar-min-change))
+  "Create a PROGRESS-BAR instance."
+  (make-instance 'progress-bar
+                 :status-message status-message
+                 :total-steps total-steps
+                 :current-step current-step
+                 :min-time min-time
+                 :min-change min-change))
 
 (defun progress-bar-starting-p (progress-bar)
   "Return T if PROGRESS-BAR is starting and has not yet processed any element."
