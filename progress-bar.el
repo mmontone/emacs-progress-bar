@@ -26,7 +26,7 @@
 ;;
 ;; This package contains the basic implementation.  For integration of progress-bar
 ;; into common Emacs commands and behaviors, install progress-bar-integrations package.
-;; 
+;;
 ;; Usage:
 ;;
 ;; The preferred method for using a progress-bar is via the utility functions:
@@ -117,26 +117,26 @@ depending on its length."
 Functions get called with a progress bar event, and a progress-bar instance.
 Progress bar events can be either `started', `updated' or `completed'")
 
-(cl-defstruct progress-bar
-  (status-message nil
-                  :documentation "The status-message can be either a status-formatter or a list of three status-formatters, the first applied when the progress-bar starts, the second applied for each element processed, the third when the progress-bar completes.
+(defclass progress-bar ()
+  ((status-message nil
+                   :documentation "The status-message can be either a status-formatter or a list of three status-formatters, the first applied when the progress-bar starts, the second applied for each element processed, the third when the progress-bar completes.
 A status-formatter is either a string or a function that takes a progress-bar instance and returns a string.")
-  (total-steps nil :type integer)
-  (current-step 0 :type integer)
-  (min-time progress-bar-min-time
-            :type float
-            :documentation "The minimum time interval between progress bar displays.")
-  (min-change progress-bar-min-change
-              :type integer
-              :documentation "The minimum percentage change between progress bar displays.")
-  (data nil :documentation "Extra data stored in the progress-bar instance for convenience.
+   (total-steps nil :type integer)
+   (current-step 0 :type integer)
+   (min-time progress-bar-min-time
+             :type float
+             :documentation "The minimum time interval between progress bar displays.")
+   (min-change progress-bar-min-change
+               :type integer
+               :documentation "The minimum percentage change between progress bar displays.")
+   (data nil :documentation "Extra data stored in the progress-bar instance for convenience.
 Often contains current element being processed.")
-  (created-time (float-time))
-  (displayed-time 0.0
-                  :type float
-                  :documentation "Time of last display.")
-  (displayed-percentage 0 :type integer
-                        :documentation "Last percentage displayed."))
+   (created-time (float-time))
+   (displayed-time 0.0
+                   :type float
+                   :documentation "Time of last display.")
+   (displayed-percentage 0 :type integer
+                         :documentation "Last percentage displayed.")))
 
 (defun progress-bar-starting-p (progress-bar)
   "Return T if PROGRESS-BAR is starting and has not yet processed any element."
