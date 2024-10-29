@@ -50,6 +50,7 @@
 
 (require 'cl-lib)
 (require 'eieio)
+(require 'progress)
 
 (defgroup progress-bar nil
   "Progress bar settings."
@@ -112,24 +113,9 @@ depending on its length."
                  (const dynamic))
   :group 'progress-bar)
 
-(defvar progress-bar-update-functions '()
-  "An abnormal hook for getting notified of progress bar updates.
-Functions get called with a progress bar event, and a progress-bar instance.
-Progress bar events can be either `started', `updated' or `completed'")
-
 (defclass progress-bar ()
-  ((status-message :initform nil
-                   :initarg :status-message
-                   :accessor progress-bar-status-message
-                   :documentation "The status-message can be either a status-formatter or a list of three status-formatters, the first applied when the progress-bar starts, the second applied for each element processed, the third when the progress-bar completes.
-A status-formatter is either a string or a function that takes a progress-bar instance and returns a string.")
-   (total-steps :type integer
-                :initarg :total-steps
-                :accessor progress-bar-total-steps)
-   (current-step :initform 0
-                 :type integer
-                 :initarg :current-step
-                 :accessor progress-bar-current-step)
+  ((progress :type progress
+             :accessor progress-bar-progress)
    (min-time ;;:initform progress-bar-min-time
     :type float
     :initarg :min-time
@@ -140,12 +126,6 @@ A status-formatter is either a string or a function that takes a progress-bar in
     :type integer
     :accessor progress-bar-min-change
     :documentation "The minimum percentage change between progress bar displays.")
-   (data :initform nil
-         :accessor progress-bar-data
-         :documentation "Extra data stored in the progress-bar instance for convenience.
-Often contains current element being processed.")
-   (created-time :initform (float-time)
-                 :accessor progress-bar-created-time)
    (displayed-time :initform 0.0
                    :type float
                    :accessor progress-bar-displayed-time
