@@ -116,6 +116,11 @@ Return nil if there were no errors; non-nil otherwise."
 
 ;; Progress reporter
 
+(defcustom progress-bar-replace-progress-reporter t
+  "When enabled, use a progress bar instead of default Emacs progress reporter."
+  :type 'boolean
+  :group 'progress-bar)
+
 (defvar progress-reporter-progress-bars
   (make-hash-table :weakness 'key)
   "A map of PROGRESS-REPORTER instances pointing to PROGRESS-BAR instances.")
@@ -137,11 +142,6 @@ If a `progress-bar' has already been created, then update its `current-step' and
       (with-slots (current-step) progress-bar
         (setf current-step (- value min-value)))
       progress-bar)))
-
-(defcustom progress-bar-replace-progress-reporter t
-  "When enabled, use a progress bar instead of default Emacs progress reporter."
-  :type 'boolean
-  :group 'progress-bar)
 
 (defun progress-bar-around-reporter (orig reporter value &optional suffix)
   (if (not progress-bar-replace-progress-reporter)
