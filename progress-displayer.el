@@ -99,6 +99,10 @@ depending on its length."
 (cl-defgeneric progress-displayer-call-with-displayer (progress-displayer func)
   "Evaluate FUNC in the scope of PROGRESS-DISPLAYER.")
 
+(cl-defmethod progress-displayer-call-with-displayer :around (progress-displayer func)
+  (let ((progress-current-displayer progress-displayer))
+    (call-next-method)))
+
 (cl-defmethod progress-displayer-call-with-displayer (progress-displayer func)
   (progress-displayer-display-progress progress-displayer))
 
@@ -133,34 +137,6 @@ depending on its length."
                       )))))
       (cl-letf (((symbol-function #'message) #'progress-displayer-message))
         (funcall func progress)))))
-
-(defun call-with-progress-displayer (progress-displayer func)
-  "Call FUNC using PROGRESS-DISPLAYER.
-Sets up a context PROGRESS-DISPLAYER for evaluating FUNC."
-  (with-slots (progress) progress-displayer
-    (if (< (progress-total-steps progress) progress-display-min-steps)
-        ;; If total-steps are not enough, then do nothing with the progress-bar
-        (funcall func progress)
-      ;; Replace the implementation of `message' temporarily, so that
-      ;; messages sent by FUNC are shown together with the progress bar.
-      (progn
-        (progress-notify 'started progress)
-        (progress-displayer-call-with-displayer progress-displayer func)
-        (setf (progress-data progress) nil)
-        (progress-displayer-display-progress progress-displayer)
-        (progress-notify 'completed progress)))))
-
-(defmacro with-progress-displayer (spec &rest body)
-  "Create a PROGRESS-DISPLAYER binding SPEC in BODY scope.
-SPEC has either the form (VAR PROGRESS-BAR-INSTANCE) or (VAR &rest INITARGS), with
-INITARGS used for creating a `progress-displayer'."
-  (declare (indent 2))
-  (cl-destructuring-bind (var &rest args) spec
-    (if (= (length initargs) 1)
-        `(let ((,var ,(car initargs)))
-           (call-with-progress-displayer ,var (lambda (,var) ,@body)))
-      `(let ((,var (make-instance ,@args)))
-         (call-with-progress-displayer ,var (lambda (,var) ,@body))))))
 
 (provide 'progress-displayer)
 

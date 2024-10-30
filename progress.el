@@ -36,7 +36,7 @@ Progress events can be either `started', `updated' or `completed'")
 (defvar progress-displayer-maker 'progress-reporter-maker
   "Configured progress-displayer.")
 
-(defvar progress-displayer-current nil
+(defvar progress-current-displayer nil
   "Current progress-displayer")
 
 (defclass progress ()
@@ -141,9 +141,38 @@ Example:
        (progress--format-status-message progress status-message)))))
 
 (defun progress-update-display ()
-  (progress-displayer-display-progress progress-displayer-current))
+  "Update progress display."
+  (progress-displayer-display-progress progress-current-displayer))
+
+(defun call-with-progress (progress func)
+  "Call FUNC using PROGRESS.
+Sets up a context PROGRESS for evaluating FUNC."
+  (if (< (progress-total-steps progress) progress-display-min-steps)
+      ;; If total-steps are not enough, then do nothing with the progress-bar
+      (funcall func progress)
+    ;; Replace the implementation of `message' temporarily, so that
+    ;; messages sent by FUNC are shown together with the progress bar.
+    (progn
+      (progress-notify 'started progress)
+      (progress-displayer-call-with-displayer progress-displayer func)
+      (setf (progress-data progress) nil)
+      (progress-displayer-display-progress progress-displayer)
+      (progress-notify 'completed progress))))
+
+(defmacro with-progress (spec &rest body)
+  "Create a `progress' instance binding SPEC in BODY scope.
+SPEC has either the form (VAR PROGRESS-INSTANCE) or (VAR &rest INITARGS), with
+INITARGS used for creating a `progress' instance."
+  (declare (indent 2))
+  (cl-destructuring-bind (var &rest initargs) spec
+    (if (= (length initargs) 1)
+        `(let ((,var ,(car initargs)))
+           (call-with-progress ,var (lambda (,var) ,@body)))
+      `(let ((,var (make-progress ,@initargs)))
+         (call-with-progress ,var (lambda (,var) ,@body))))))
 
 (defun progress-make-displayer (progress &rest args)
+  "Create a progress-displayer for PROGRESS."
   (apply progress-displayer-maker progress args))
 
 ;; Utilities
@@ -156,53 +185,44 @@ Example:
                            :total-steps (length sequence)
                            :current-step 0
                            args))))
-    (with-progress-displayer (progress-displayer progress)
-        (progress-notify 'started progress)
-      (dolist (x sequence)
-        (setf (progress-data progress) x)
-        (funcall func x)
-        (progress-incf progress 1 t))
-      (setf (progress-data progress) nil)
-      (progress-display progress)
-      (progress-notify 'completed progress))))
+    (with-progress (progress)
+        (dolist (x sequence)
+          (setf (progress-data progress) x)
+          (funcall func x)
+          (progress-incf progress 1 t)))))
 
-(defmacro dolist-with-progress-bar (spec &rest body)
+(defmacro progress-dolist (spec &rest body)
   "Like DOLIST but displaying a progress-bar as items in the list are processed.
-ARGS are arguments for `make-progress-bar'.
+ARGS are arguments for `make-progress'.
 
 \(fn (VAR LIST ARGS...) BODY...)
 
 Example:
 
-\(dolist-with-progress-bar
+\(progress-dolist
    (x (cl-loop for i from 1 to 30 collect i)
       :status-message \"Working ...\")
    (sit-for 0.3))"
   (declare (indent 2))
   (cl-destructuring-bind (var list &rest args) spec
-    `(mapc-with-progress-bar (lambda (,var) ,@body) ,list ,@args)))
+    `(progress-dolist (lambda (,var) ,@body) ,list ,@args)))
 
 (defmacro dotimes-with-progress-bar (spec &rest body)
   "Like `dotimes' but with a progress bar."
   (declare (indent 2))
-  (let ((progress-bar (gensym "progress-bar-")))
+  (let ((progress (gensym "progress-")))
     (cl-destructuring-bind (var times &rest args) spec
-      `(let ((,progress-bar ,(if (= (length args) 1)
-                                 (car args)
-                               `(make-progress-bar
-                                 :total-steps ,times
-                                 :current-step 0
-                                 ,@args))))
-         (with-progress-bar (,progress-bar ,progress-bar)
-                            (progress-bar-notify 'started ,progress-bar)
-                            (dotimes (,var ,times)
-                              (setf (progress-bar-data ,progress-bar) ,var)
-                              ,@body
-                              (progress-bar-incf ,progress-bar 1 t))
-                            (setf (progress-bar-data ,progress-bar) nil)
-                            (progress-bar--display ,progress-bar)
-                            (progress-bar-notify 'completed ,progress-bar))))))
-
+      `(let ((,progress ,(if (= (length args) 1)
+                             (car args)
+                           `(make-progress
+                             :total-steps ,times
+                             :current-step 0
+                             ,@args))))
+         (with-progress (,progress)
+             (dotimes (,var ,times)
+               (setf (progress-bar-data ,progress-bar) ,var)
+               ,@body
+               (progress-bar-incf ,progress-bar 1 t)))))))
 
 (provide 'progress)
 
