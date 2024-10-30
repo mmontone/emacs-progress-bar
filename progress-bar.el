@@ -107,10 +107,12 @@ See `format' documentation."
 If `concatenate', the message is concatenated to the right of the progress bar.
 If `newline', the message is inserted after a new line.
 If `dynamic', the message is either concatenated or inserted after a new line
-depending on its length."
+depending on its length.
+If `none', then don't display messages at all."
   :type '(choice (const concatenate)
                  (const newline)
-                 (const dynamic))
+                 (const dynamic)
+                 (const none))
   :group 'progress-bar)
 
 (defvar progress-bar-update-functions '()
@@ -309,7 +311,11 @@ evaluating FUNC, so that messages are displayed together with the progress bar."
                          (let ((resize-mini-windows t))
                            (apply emacs-message
                                   (concat (progress-bar--display-string progress-bar) " | " msg)
-                                  args))))))))
+                                  args)))
+                        (none
+                         ;; Don't display messages
+                         (apply emacs-message (progress-bar--display-string progress-bar) args))
+                         )))))
         (cl-letf (((symbol-function #'message) #'pb-message))
           (funcall func progress-bar))))))
 

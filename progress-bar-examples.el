@@ -48,6 +48,7 @@
   ;; Do this to observe the completion message when evaluating with eval-last-sexp
   (sit-for 1))
   
+;; Display layout examples:
 
 (progress-bar-dolist (x (cl-loop for i from 1 to 10 collect i)
                              :status-message "Working ...")
@@ -55,6 +56,12 @@
   (sit-for 0.3))
 
 (let ((progress-bar-message-display-layout 'newline))
+  (progress-bar-dolist (x (cl-loop for i from 1 to 10 collect i)
+                               :status-message "Working ...")
+      (message "Hello %s" x)
+    (sit-for 0.3)))
+
+(let ((progress-bar-message-display-layout 'none))
   (progress-bar-dolist (x (cl-loop for i from 1 to 10 collect i)
                                :status-message "Working ...")
       (message "Hello %s" x)
