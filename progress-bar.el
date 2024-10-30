@@ -79,11 +79,6 @@
   :type 'integer
   :group 'progress-bar)
 
-(defcustom progress-bar-display-after-seconds 0
-  "Display progress bars only after this number of seconds have passed."
-  :type 'float
-  :group 'progress-bar)
-
 (defcustom progress-bar-format-string " [%d of %d](%d%%%%)"
   "String for formatting the progress bar.
 Arguments passed are current-step, total-steps and completed percentage.
@@ -114,7 +109,7 @@ depending on its length."
                  (const dynamic))
   :group 'progress-bar)
 
-(defclass progress-bar (progress-display)
+(defclass progress-bar (echo-area-progress-displayer)
   ())
 
 (cl-defun make-progress-bar (progress &key (min-time progress-bar-min-time)

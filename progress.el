@@ -26,14 +26,18 @@
 
 (require 'cl-lib)
 (require 'eieio)
+(require 'progress-displayer)
 
 (defvar progress-update-functions '()
   "An abnormal hook for getting notified of progress updates.
 Functions get called with a progress event, and a progress instance.
 Progress events can be either `started', `updated' or `completed'")
 
-(defvar progress-displayer 'default-progress-displayer
-  "Function used to display progress in Emacs.")
+(defvar progress-displayer-maker 'progress-reporter-maker
+  "Configured progress-displayer.")
+
+(defvar progress-displayer-current nil
+  "Current progress-displayer")
 
 (defclass progress ()
   ((status-message :initform nil
@@ -60,7 +64,7 @@ Often contains current element being processed.")
                  :documentation "Time of last update.")))
 
 (cl-defun make-progress (&key status-message total-steps (current-step 0))
-  "Create a `progress' instance."  
+  "Create a `progress' instance."
   (make-instance 'progress
                  :status-message status-message
                  :total-steps total-steps
@@ -136,31 +140,31 @@ Example:
       (t
        (progress--format-status-message progress status-message)))))
 
-(defun progress-display (progress)
-  (funcall progress-displayer progress))
+(defun progress-update-display ()
+  (progress-displayer-display-progress progress-displayer-current))
 
-(defun default-progress-displayer (progress)
-  )
+(defun progress-make-displayer (progress &rest args)
+  (apply progress-displayer-maker progress args))
 
 ;; Utilities
 
 (defun progress-mapc (func sequence &rest args)
   "Like `mapc' but using a progress-bar."
   (let ((progress (if (= (length args) 1)
-                          (car args)
-                        (apply #'make-progress
-                               :total-steps (length sequence)
-                               :current-step 0
-                               args))))
-    (with-progress-bar (progress-bar progress-bar)
-        (progress-bar-notify 'started progress-bar)
+                      (car args)
+                    (apply #'make-progress
+                           :total-steps (length sequence)
+                           :current-step 0
+                           args))))
+    (with-progress-displayer (progress-displayer progress)
+        (progress-notify 'started progress)
       (dolist (x sequence)
-        (setf (progress-bar-data progress-bar) x)
+        (setf (progress-data progress) x)
         (funcall func x)
-        (progress-bar-incf progress-bar 1 t))
-      (setf (progress-bar-data progress-bar) nil)
-      (progress-bar--display progress-bar)
-      (progress-bar-notify 'completed progress-bar))))
+        (progress-incf progress 1 t))
+      (setf (progress-data progress) nil)
+      (progress-display progress)
+      (progress-notify 'completed progress))))
 
 (defmacro dolist-with-progress-bar (spec &rest body)
   "Like DOLIST but displaying a progress-bar as items in the list are processed.
@@ -190,14 +194,14 @@ Example:
                                  :current-step 0
                                  ,@args))))
          (with-progress-bar (,progress-bar ,progress-bar)
-             (progress-bar-notify 'started ,progress-bar)
-           (dotimes (,var ,times)
-             (setf (progress-bar-data ,progress-bar) ,var)
-             ,@body
-             (progress-bar-incf ,progress-bar 1 t))
-           (setf (progress-bar-data ,progress-bar) nil)
-           (progress-bar--display ,progress-bar)
-           (progress-bar-notify 'completed ,progress-bar))))))
+                            (progress-bar-notify 'started ,progress-bar)
+                            (dotimes (,var ,times)
+                              (setf (progress-bar-data ,progress-bar) ,var)
+                              ,@body
+                              (progress-bar-incf ,progress-bar 1 t))
+                            (setf (progress-bar-data ,progress-bar) nil)
+                            (progress-bar--display ,progress-bar)
+                            (progress-bar-notify 'completed ,progress-bar))))))
 
 
 (provide 'progress)
