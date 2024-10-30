@@ -1,6 +1,6 @@
-# emacs-progress-bar
+# emacs-progress-displayer
 
-A progress bar in Emacs echo area.
+A progress displayer for Emacs
 
 ![progress-bar](progress-bar.gif)
 
