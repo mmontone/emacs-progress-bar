@@ -38,7 +38,7 @@
 
 ;; test
 (when nil
-  (dotimes-with-progress-bar (x 5 :status-message "Doing something")
+  (progress-bar-dotimes (x 5 :status-message "Doing something")
       (sit-for 0.5)))
 
 (provide 'progress-bar-alert)

@@ -22,29 +22,36 @@
 
 ;;; Commentary:
 
+
 ;; A progress bar in the echo area.
 ;;
-;; This package contains the basic implementation.  For integration of progress-bar
-;; into common Emacs commands and behaviors, install progress-bar-integrations package.
+;; This package contains the basic implementation.  For integration of
+;; progress-bar into common Emacs commands and behaviors, install
+;; progress-bar-integrations package.
 ;;
-;; Usage:
+;;;; Usage:
 ;;
-;; The preferred method for using a progress-bar is via the utility functions:
-;; `dolist-with-progress-bar', `dotimes-with-progress-bar' and `mapc-with-progress-bar'.
+;; The preferred method for using a progress-bar is via the utility
+;; functions: `progress-bar-dolist', `progress-bar-dotimes'
+;; and `progress-bar-mapc'.
 ;;
-;; Example:
+;;;; Example:
 ;;
-;; (dolist-with-progress-bar (x (cl-loop for i from 1 to 10 collect i)
+;; (progress-bar-dolist (x (cl-loop for i from 1 to 10 collect i)
 ;;                              :status-message (list "Started ..."
 ;;                                                    (lambda (pb)
 ;;                                                      (format "Processing %s..." (progress-bar-data pb)))
 ;;                                                    "Completed!"))
 ;;     (sit-for (seq-random-elt '(0.3 0.4 0.5))))
-;;
-;; TODO:
-;; - Consider putting event notification in call-with-progress-bar instead of in the utilities.
-;; - Consider implementing progress-bars with no total-steps specified.
-;; - Consider an option for hiding the progress-bar display after N seconds after completion.
+
+;;; TODO:
+
+;; - Consider putting event notification in call-with-progress-bar
+;;   instead of in the utilities.
+;; - Consider implementing progress-bars with no total-steps
+;;   specified.
+;; - Consider an option for hiding the progress-bar display after N
+;;   seconds after completion.
 
 ;;; Code:
 
@@ -57,48 +64,42 @@
 
 ;; Chosen from https://en.wikipedia.org/wiki/Block_Elements and inserted using `insert-char' command:
 
-(defcustom progress-bar-char ?▓
+(defcustom progress-bar-char
+  (eval-when-compile (char-from-name "DARK SHADE"))
   "Character for drawing progress bars."
-  :type 'character
-  :group 'progress-bar)
+  :type 'character)
 
-(defcustom progress-bar-background-char ?░
+(defcustom progress-bar-background-char
+  (eval-when-compile (char-from-name "LIGHT SHADE"))
   "Character for drawing progress bars background."
-  :type 'character
-  :group 'progress-bar)
+  :type 'character)
 
 (defcustom progress-bar-width 35
   "Standard width for progress bars."
-  :type 'integer
-  :group 'progress-bar)
+  :type 'natnum)
 
 (defcustom progress-bar-min-steps 0
   "Minimum number of steps for progress bars to be displayed."
-  :type 'integer
-  :group 'progress-bar)
+  :type 'natnum)
 
 (defcustom progress-bar-display-after-seconds 0
   "Display progress bars only after this number of seconds have passed."
-  :type 'float
-  :group 'progress-bar)
+  :type 'number)                        ;this was a type mismatch, 0 is not a flonum
 
-(defcustom progress-bar-format-string " [%d of %d](%d%%%%)"
+(defcustom progress-bar-format-string " [%d of %d](%d%%%%)" ;how about using `format-spec'?
   "String for formatting the progress bar.
 Arguments passed are current-step, total-steps and completed percentage.
 Consider using field number arguments for more flexibility.
 See `format' documentation."
-  :type 'string
-  :group 'progress-bar)
+  :type 'string)
 
 (defcustom progress-bar-min-time 0.2
   "The minimum time interval between progress bar displays."
-  :type 'float
-  :group 'progress-bar)
+  :type 'number)
 
 (defcustom progress-bar-min-change 1
   "The minimum percentage change required between progress bar displays."
-  :type 'integer
-  :group 'progress-bar)
+  :type 'number)
 
 (defcustom progress-bar-message-display-layout
   'concatenate
@@ -186,7 +187,7 @@ See `progress-bar-update-functions' hook."
 ARGS is a property-list of slot-name and value.
 
 Example:
-(progress-bar-update pg 'current-step 2 'data 'foo)"
+\(progress-bar-update pg \\='current-step 2 \\='data \\='foo)"
   (cl-loop for (slot value) on args by 'cddr
            do (setf (slot-value progress-bar slot) value))
   (progress-bar--display progress-bar)
@@ -195,11 +196,12 @@ Example:
     (progress-bar-notify 'updated progress-bar)))
 
 (defun progress-bar-incf (progress-bar &optional increment display)
-  "Increment step in PROGRESS-BAR."
+  "Increment step by STEP in PROGRESS-BAR.
+If DISPLAY is non-nil, ..."
   (let ((inc (or increment 1)))
     (with-slots (current-step total-steps) progress-bar
       (when (and total-steps (> (+ current-step inc) total-steps))
-        (error "current-step > total-steps"))
+        (error "current-step > total-steps")) ;please rephrase this error message to be understandable on its own
       (cl-incf current-step inc)
       (when display
         (progress-bar--display progress-bar))
@@ -212,7 +214,7 @@ Example:
   (if (progress-bar-completed-p progress-bar)
       100
     (with-slots (current-step total-steps) progress-bar
-      (truncate (* (/ current-step (float total-steps)) 100)))))
+      (truncate (* current-step 100.0) total-steps))))
 
 (defun progress-bar--display (progress-bar)
   "Display PROGRESS-BAR in echo-area."
@@ -234,7 +236,7 @@ Example:
 
 (defun progress-bar--format-status-message (progress-bar message)
   (cl-etypecase message
-    ((or symbol function)
+    (function
      (funcall message progress-bar))
     (string message)))
 
@@ -283,7 +285,7 @@ evaluating FUNC, so that messages are displayed together with the progress bar."
       (funcall func progress-bar)
     ;; Replace the implementation of `message' temporarily, so that
     ;; messages sent by FUNC are shown together with the progress bar.
-    (let ((emacs-message (symbol-function 'message)))
+    (let ((emacs-message (symbol-function #'message)))
       (cl-flet ((pb-message (msg &rest args)
                   ;; This is only for logging. Can we log the message
                   ;; without calling `message' ?
@@ -313,10 +315,10 @@ evaluating FUNC, so that messages are displayed together with the progress bar."
 
 (defmacro with-progress-bar (spec &rest body)
   "Create a PROGRESS-BAR binding SPEC in BODY scope.
-SPEC has either the form (VAR PROGRESS-BAR-INSTANCE) or (VAR &rest INITARGS), with
-INITARGS used for creating a `progress-bar'.
-This macros sets up special treatment for calls to MESSAGE that may ocurr in BODY,
-so that messages are displayed together with the progress bar."
+SPEC has either the form (VAR PROGRESS-BAR-INSTANCE) or (VAR &rest
+INITARGS), with INITARGS used for creating a `progress-bar'.  This
+macros sets up special treatment for calls to MESSAGE that may ocurr in
+BODY, so that messages are displayed together with the progress bar."
   (declare (indent 2))
   (cl-destructuring-bind (var &rest initargs) spec
     (if (= (length initargs) 1)
@@ -325,9 +327,9 @@ so that messages are displayed together with the progress bar."
       `(let ((,var (make-progress-bar ,@initargs)))
          (call-with-progress-bar ,var (lambda (,var) ,@body))))))
 
-;; Utilities
+;;;; Utilities
 
-(defun mapc-with-progress-bar (func sequence &rest args)
+(defun progress-bar-mapc (func sequence &rest args)
   "Like `mapc' but using a progress-bar."
   (let ((progress-bar (if (= (length args) 1)
                           (car args)
@@ -345,7 +347,7 @@ so that messages are displayed together with the progress bar."
       (progress-bar--display progress-bar)
       (progress-bar-notify 'completed progress-bar))))
 
-(defmacro dolist-with-progress-bar (spec &rest body)
+(defmacro progress-bar-dolist (spec &rest body)
   "Like DOLIST but displaying a progress-bar as items in the list are processed.
 ARGS are arguments for `make-progress-bar'.
 
@@ -353,15 +355,15 @@ ARGS are arguments for `make-progress-bar'.
 
 Example:
 
-\(dolist-with-progress-bar
+\(progress-bar-dolist
    (x (cl-loop for i from 1 to 30 collect i)
       :status-message \"Working ...\")
    (sit-for 0.3))"
   (declare (indent 2))
   (cl-destructuring-bind (var list &rest args) spec
-    `(mapc-with-progress-bar (lambda (,var) ,@body) ,list ,@args)))
+    `(progress-bar-mapc (lambda (,var) ,@body) ,list ,@args)))
 
-(defmacro dotimes-with-progress-bar (spec &rest body)
+(defmacro progress-bar-dotimes (spec &rest body)
   "Like `dotimes' but with a progress bar."
   (declare (indent 2))
   (let ((progress-bar (gensym "progress-bar-")))

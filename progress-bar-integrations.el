@@ -57,7 +57,7 @@ from ELPA by either using `\\[package-upgrade]' or
                          (format "%s packages to upgrade.  Do it?"
                                  (length upgradeable))))))
         (user-error "Upgrade aborted"))
-      (dolist-with-progress-bar (package upgradeable
+      (progress-bar-dolist (package upgradeable
                                          :status-message
                                          (list "Upgrading packages"
                                                (lambda (pb)
@@ -75,7 +75,7 @@ Return nil if there were no errors; non-nil otherwise."
                                      (length install-list)))
               (i 0)
               (package-menu--transaction-status))
-          (dolist-with-progress-bar (pkg install-list
+          (progress-bar-dolist (pkg install-list
                                          :status-message (list (format "Installing %d packages" (length install-list))
                                                                (lambda (pb) (format "Installing package: %s" (package-desc-name (progress-bar-data pb))))
                                                                (format "%d packages installed." (length install-list))))
@@ -89,7 +89,7 @@ Return nil if there were no errors; non-nil otherwise."
     (let ((package-menu--transaction-status ":Deleting"))
       (force-mode-line-update)
       (redisplay 'force)
-      (dolist-with-progress-bar (elt (package--sort-by-dependence delete-list)
+      (progress-bar-dolist (elt (package--sort-by-dependence delete-list)
                                      :status-message
                                      (list (format "Deleting %d packages" (length delete-list))
                                            (lambda (pb)
@@ -105,7 +105,7 @@ Return nil if there were no errors; non-nil otherwise."
     errors))
 
 (define-advice package--download-and-read-archives (:override (&optional async))
-  (dolist-with-progress-bar (archive package-archives
+  (progress-bar-dolist (archive package-archives
                                      :status-message (list (format "Refreshing %d package archives" (length package-archives))
                                                            (lambda (pb) (format "Reading archive: %s" (car (progress-bar-data pb))))
                                                            "Package contents refreshed"))
