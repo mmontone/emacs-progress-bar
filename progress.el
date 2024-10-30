@@ -65,6 +65,53 @@ Often contains current element being processed.")
                  :total-steps total-steps
                  :current-step 0))
 
+(defun progress-starting-p (progress)
+  "Return T if PROGRESS is starting and has not yet processed any element."
+  (with-slots (current-step data) progress
+    (and (zerop current-step) (null data))))
+
+(defun progress-completed-p (progress)
+  "Return T if PROGRESS has completed."
+  (with-slots (current-step total-steps) progress
+    (= current-step total-steps)))
+
+(defun progress-notify (event progress)
+  "Notify EVENT for PROGRESS.
+See `progress-update-functions' hook."
+  (dolist (hook progress-update-functions)
+    (funcall hook event progress)))
+
+(defun progress-percentage (progress)
+  "Current completion percentage of PROGRESS."
+  (if (progress-completed-p progress)
+      100
+    (with-slots (current-step total-steps) progress
+      (truncate (* (/ current-step (float total-steps)) 100)))))
+
+(defun progress-update (progress &rest args)
+  "Update PROGRESS and display it.
+ARGS is a property-list of slot-name and value.
+
+Example:
+(progress-update pg 'current-step 2 'data 'foo)"
+  (cl-loop for (slot value) on args by 'cddr
+           do (setf (slot-value progress slot) value))
+  (progress-display progress)
+  (if (progress-completed-p progress)
+      (progress-notify 'completed progress)
+    (progress-notify 'updated progress)))
+
+(defun progress-incf (progress &optional increment display)
+  "Increment step in PROGRESS."
+  (let ((inc (or increment 1)))
+    (with-slots (current-step total-steps) progress
+      (when (and total-steps (> (+ current-step inc) total-steps))
+        (error "current-step > total-steps"))
+      (cl-incf current-step inc)
+      (when display
+        (progress-display progress))
+      (progress-notify 'updated progress))))
+
 (defun progress-display (progress)
   (funcall progress-displayer progress))
 

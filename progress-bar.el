@@ -145,54 +145,7 @@ depending on its length."
                  :min-time min-time
                  :min-change min-change))
 
-(defun progress-bar-starting-p (progress-bar)
-  "Return T if PROGRESS-BAR is starting and has not yet processed any element."
-  (with-slots (current-step data) progress-bar
-    (and (zerop current-step) (null data))))
-
-(defun progress-bar-completed-p (progress-bar)
-  "Return T if PROGRESS-BAR has completed."
-  (with-slots (current-step total-steps) progress-bar
-    (= current-step total-steps)))
-
-(defun progress-bar-notify (event progress-bar)
-  "Notify EVENT for PROGRESS-BAR.
-See `progress-bar-update-functions' hook."
-  (dolist (hook progress-bar-update-functions)
-    (funcall hook event progress-bar)))
-
-(defun progress-bar-update (progress-bar &rest args)
-  "Update PROGRESS-BAR and display it.
-ARGS is a property-list of slot-name and value.
-
-Example:
-(progress-bar-update pg 'current-step 2 'data 'foo)"
-  (cl-loop for (slot value) on args by 'cddr
-           do (setf (slot-value progress-bar slot) value))
-  (progress-bar--display progress-bar)
-  (if (progress-bar-completed-p progress-bar)
-      (progress-bar-notify 'completed progress-bar)
-    (progress-bar-notify 'updated progress-bar)))
-
-(defun progress-bar-incf (progress-bar &optional increment display)
-  "Increment step in PROGRESS-BAR."
-  (let ((inc (or increment 1)))
-    (with-slots (current-step total-steps) progress-bar
-      (when (and total-steps (> (+ current-step inc) total-steps))
-        (error "current-step > total-steps"))
-      (cl-incf current-step inc)
-      (when display
-        (progress-bar--display progress-bar))
-      (progress-bar-notify 'updated progress-bar))))
-
 (defvar progress-bar--message (symbol-function 'message))
-
-(defun progress-bar-percentage (progress-bar)
-  "Current completion percentage of PROGRESS-BAR."
-  (if (progress-bar-completed-p progress-bar)
-      100
-    (with-slots (current-step total-steps) progress-bar
-      (truncate (* (/ current-step (float total-steps)) 100)))))
 
 (defun progress-bar--display (progress-bar)
   "Display PROGRESS-BAR in echo-area."
