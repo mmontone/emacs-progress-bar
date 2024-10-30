@@ -56,14 +56,15 @@ Often contains current element being processed.")
                  :accessor progress-created-time)
    (updated-time :initform 0.0
                  :type float
-                 :accessor progress-displayed-time
+                 :accessor progress-update-time
                  :documentation "Time of last update.")))
 
 (cl-defun make-progress (&key status-message total-steps (current-step 0))
+  "Create a `progress' instance."  
   (make-instance 'progress
                  :status-message status-message
                  :total-steps total-steps
-                 :current-step 0))
+                 :current-step current-step))
 
 (defun progress-starting-p (progress)
   "Return T if PROGRESS is starting and has not yet processed any element."
@@ -86,7 +87,7 @@ See `progress-update-functions' hook."
   (if (progress-completed-p progress)
       100
     (with-slots (current-step total-steps) progress
-      (truncate (* (/ current-step (float total-steps)) 100)))))
+      (truncate (* current-step 100.0) total-steps))))
 
 (defun progress-update (progress &rest args)
   "Update PROGRESS and display it.
@@ -140,6 +141,64 @@ Example:
 
 (defun default-progress-displayer (progress)
   )
+
+;; Utilities
+
+(defun progress-mapc (func sequence &rest args)
+  "Like `mapc' but using a progress-bar."
+  (let ((progress (if (= (length args) 1)
+                          (car args)
+                        (apply #'make-progress
+                               :total-steps (length sequence)
+                               :current-step 0
+                               args))))
+    (with-progress-bar (progress-bar progress-bar)
+        (progress-bar-notify 'started progress-bar)
+      (dolist (x sequence)
+        (setf (progress-bar-data progress-bar) x)
+        (funcall func x)
+        (progress-bar-incf progress-bar 1 t))
+      (setf (progress-bar-data progress-bar) nil)
+      (progress-bar--display progress-bar)
+      (progress-bar-notify 'completed progress-bar))))
+
+(defmacro dolist-with-progress-bar (spec &rest body)
+  "Like DOLIST but displaying a progress-bar as items in the list are processed.
+ARGS are arguments for `make-progress-bar'.
+
+\(fn (VAR LIST ARGS...) BODY...)
+
+Example:
+
+\(dolist-with-progress-bar
+   (x (cl-loop for i from 1 to 30 collect i)
+      :status-message \"Working ...\")
+   (sit-for 0.3))"
+  (declare (indent 2))
+  (cl-destructuring-bind (var list &rest args) spec
+    `(mapc-with-progress-bar (lambda (,var) ,@body) ,list ,@args)))
+
+(defmacro dotimes-with-progress-bar (spec &rest body)
+  "Like `dotimes' but with a progress bar."
+  (declare (indent 2))
+  (let ((progress-bar (gensym "progress-bar-")))
+    (cl-destructuring-bind (var times &rest args) spec
+      `(let ((,progress-bar ,(if (= (length args) 1)
+                                 (car args)
+                               `(make-progress-bar
+                                 :total-steps ,times
+                                 :current-step 0
+                                 ,@args))))
+         (with-progress-bar (,progress-bar ,progress-bar)
+             (progress-bar-notify 'started ,progress-bar)
+           (dotimes (,var ,times)
+             (setf (progress-bar-data ,progress-bar) ,var)
+             ,@body
+             (progress-bar-incf ,progress-bar 1 t))
+           (setf (progress-bar-data ,progress-bar) nil)
+           (progress-bar--display ,progress-bar)
+           (progress-bar-notify 'completed ,progress-bar))))))
+
 
 (provide 'progress)
 
