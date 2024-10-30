@@ -26,17 +26,17 @@
 
 (require 'progress)
 
-(defcustom progress-display-after-seconds 0
+(defcustom progress-displayer-after-seconds 0
   "Display progress bars only after this number of seconds have passed."
   :type 'float
   :group 'progress)
 
-(defcustom progress-display-min-steps 0
+(defcustom progress-displayer-min-steps 0
   "Minimum number of steps for progress to be displayed."
   :type 'integer
   :group 'progress)
 
-(defcustom progress-display-message-layout
+(defcustom progress-displayer-message-layout
   'concatenate
   "How to display messages when in a progress display scope.
 If `concatenate', the message is concatenated to the right of the progress bar.
@@ -48,10 +48,16 @@ depending on its length."
                  (const dynamic))
   :group 'progress)
 
+(defvar progress-displayer--message (symbol-function 'message))
+
+(defun progress-displayer-message (message &rest args)
+  "Use Emacs original `message' function for displaying MESSAGE using ARGS."
+  (apply progress-displayer-message message args))
+
 (defclass progress-displayer ()
   ((progress :type progress
              :initarg :progress
-             :accessor progress-bar-progress)
+             :accessor progress-displayer-progress)
    (min-time ;;:initform progress-bar-min-time
     :type float
     :initarg :min-time
@@ -72,6 +78,20 @@ depending on its length."
 
 (cl-defgeneric progress-displayer-display-progress (progress-displayer)
   "Specializable generic function for displaying PROGRESS-DISPLAYER.")
+
+(cl-defmethod progress-displayer-display-progress :around (progress-displayer)
+  (with-slots (progress total-steps created-time)
+      (progress-displayer-progress progress-bar)
+    (with-slots (min-time displayed-time min-change displayed-percentage)
+        progress-bar
+      (let ((now (float-time))
+            (percentage (progress-percentage progress-bar)))
+        (when (or (progress-completed-p progress-bar)
+                  (and (>= total-steps progress-displayer-min-steps)
+                       (>= now (+ displayed-time min-time))
+                       (>= now (+ created-time progress-displayer-after-seconds))
+                       (>= percentage (+ displayed-percentage min-change))))
+          (call-next-method))))))
 
 (defclass echo-area-progress-displayer (progress-displayer)
   ())
