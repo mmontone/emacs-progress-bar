@@ -112,11 +112,34 @@ Example:
         (progress-display progress))
       (progress-notify 'updated progress))))
 
+(defun progress--format-status-message (progress message)
+  (cl-etypecase message
+    ((or symbol function)
+     (funcall message progress))
+    (string message)))
+
+(defun progress-formatted-status-message (progress)
+  "Get formatted status message of PROGRESS."
+  (with-slots (status-message) progress
+    (cl-etypecase status-message
+      (null nil)
+      (list (cl-destructuring-bind (starting-message processing-message completed-message) status-message
+              (progress--format-status-message
+               progress
+               (cond
+                ((progress-starting-p progress)
+                 starting-message)
+                ((progress-completed-p progress)
+                 completed-message)
+                (t processing-message)))))
+      (t
+       (progress--format-status-message progress status-message)))))
+
 (defun progress-display (progress)
   (funcall progress-displayer progress))
 
 (defun default-progress-displayer (progress)
-  ())
+  )
 
 (provide 'progress)
 

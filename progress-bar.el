@@ -165,29 +165,6 @@ depending on its length."
           (setf displayed-time now
                 displayed-percentage percentage))))))
 
-(defun progress-bar--format-status-message (progress-bar message)
-  (cl-etypecase message
-    ((or symbol function)
-     (funcall message progress-bar))
-    (string message)))
-
-(defun progress-bar-formatted-status-message (progress-bar)
-  "Get formatted status message of PROGRESS-BAR."
-  (with-slots (status-message) progress-bar
-    (cl-etypecase status-message
-      (null nil)
-      (list (cl-destructuring-bind (starting-message processing-message completed-message) status-message
-              (progress-bar--format-status-message
-               progress-bar
-               (cond
-                ((progress-bar-starting-p progress-bar)
-                 starting-message)
-                ((progress-bar-completed-p progress-bar)
-                 completed-message)
-                (t processing-message)))))
-      (t
-       (progress-bar--format-status-message progress-bar status-message)))))
-
 (defun progress-bar--display-string (progress-bar)
   "String representation of the PROGRESS-BAR."
   (with-slots (current-step total-steps status-message)
