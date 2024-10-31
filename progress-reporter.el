@@ -24,9 +24,33 @@
 
 ;;; Code:
 
+(require 'eieio)
+(require 'cl-lib)
 (require 'progress)
+(require 'progress-displayer)
 
-(defun progress-reporter-maker (&rest args))
+(defvar progress-reporter--pulse-characters ["-" "\\" "|" "/"]
+  "Characters to use for pulsing progress reporters.")
+
+(defclass progress-reporter-displayer (echo-area-progress-displayer)
+  ())
+
+(cl-defmethod progress-displayer-display-progress ((progress-displayer progress-reporter-displayer))
+  (let ((progress (progress-displayer-progress progress-displayer)))
+    (with-slots (status-message current-step total-steps) progress
+      (with-output-to-string
+        (let* ((index (mod current-step 4))
+               (pulse-char (aref progress-reporter--pulse-characters
+                                 index)))
+          (princ pulse-char)
+          (princ " "))
+        (when status-message
+          (princ (progress-formatted-status-message progress))
+          (princ " "))
+        (princ (format "[%d of %d]" current-step total-steps))
+        (princ " (")
+        (princ (progress-percentage progress))
+        (princ "%%)")))))
 
 (provide 'progress-reporter)
 
