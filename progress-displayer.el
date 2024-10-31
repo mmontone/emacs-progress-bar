@@ -26,6 +26,16 @@
 
 (require 'progress)
 
+(defcustom progress-displayer-min-time 0.0
+  "Document."
+  :type 'float
+  :group 'progress)
+
+(defcustom progress-displayer-min-change 1
+  "Document."
+  :type 'integer
+  :group 'progress)
+
 (defcustom progress-displayer-after-seconds 0
   "Display progress bars only after this number of seconds have passed."
   :type 'float
@@ -60,7 +70,7 @@ if `none', the message is not displayed."
 (defun progress-displayer-update-function (event progress)
   "Handle progress updates and handle their display."
 
-  (when (eql event 'start)
+  (when (eql event 'started)
     ;; If starting, create a progress-displayer and register an update handler
     (let ((progress-displayer (make-instance progress-displayer-class
                                              :progress progress)))
@@ -77,20 +87,22 @@ if `none', the message is not displayed."
 
 (defvar progress-displayer--message (symbol-function 'message))
 
-(defun progress-displayer-message (message &rest args)
+(defun progress-displayer--message (message &rest args)
   "Use Emacs original `message' function for displaying MESSAGE using ARGS."
-  (apply progress-displayer-message message args))
+  (apply progress-displayer--message message args))
 
 (defclass progress-displayer ()
   ((progress :type progress
              :initarg :progress
              :accessor progress-displayer-progress)
-   (min-time ;;:initform progress-bar-min-time
+   (min-time
+    :initform (eval progress-displayer-min-time)
     :type float
     :initarg :min-time
     :accessor progress-displayer-min-time
     :documentation "The minimum time interval between progress bar displays.")
-   (min-change ;;:initform progress-bar-min-change
+   (min-change
+    :initform (eval progress-displayer-min-change)
     :initarg :min-change
     :type integer
     :accessor progress-displayer-min-change
@@ -107,19 +119,18 @@ if `none', the message is not displayed."
   "Specializable generic function for displaying PROGRESS-DISPLAYER.")
 
 (cl-defmethod progress-displayer-display-progress :around (progress-displayer)
-  (with-slots (progress total-steps created-time)
-      (progress-displayer-progress progress-bar)
-    (with-slots (min-time displayed-time min-change displayed-percentage)
-        progress-displayer
+  (with-slots (progress min-time displayed-time min-change displayed-percentage)
+      progress-displayer
+    (with-slots (total-steps created-time) progress
       (let ((now (float-time))
-            (percentage (progress-percentage progress-bar)))
+            (percentage (progress-percentage progress)))
         ;; Progress is not displayed unless the following conditions are met
-        (when (or (progress-completed-p progress-bar)
+        (when (or (progress-completed-p progress)
                   (and (>= total-steps progress-displayer-min-steps)
                        (>= now (+ displayed-time min-time))
                        (>= now (+ created-time progress-displayer-after-seconds))
                        (>= percentage (+ displayed-percentage min-change))))
-          (call-next-method))))))
+          (cl-call-next-method))))))
 
 (defclass echo-area-progress-displayer (progress-displayer)
   ()
@@ -129,16 +140,17 @@ if `none', the message is not displayed."
   "Return a `progress' event handler for PROGRESS-DISPLAYER.")
 
 (cl-defmethod progress-displayer-update-handler ((progress-displayer echo-area-progress-displayer))
-  (let ((emacs-message (symbol-function #'message)))
+  (let ((emacs-message (symbol-function #'message))
+        (progress (progress-displayer-progress progress-displayer)))
     (cl-flet ((progress-displayer-message (msg &rest args)
                 ;; This is only for logging. Can we log the message
                 ;; without calling `message' ?
                 ;;(apply emacs-message msg args)
-                (if (< (float-time) (+ (progress-created-time progress) progress-display-after-seconds))
+                (if (< (float-time) (+ (progress-created-time progress) progress-displayer-after-seconds))
                     (apply emacs-message msg args)
                   ;; else
                   (let ((message-log-max nil))
-                    (cl-ecase progress-display-message-layout
+                    (cl-ecase progress-displayer-message-layout
                       (concatenate
                        (let ((resize-mini-windows nil))
                          (apply emacs-message
@@ -161,13 +173,13 @@ if `none', the message is not displayed."
         (cl-ecase event
           (started
            (fset #'message #'progress-displayer-message)
-           (progress-displayer-display-progress progress-displayer))
+           (progress-displayer--message (progress-displayer-display-progress progress-displayer)))
           (updated
-           (progress-displayer-display-progress progress-displayer))
+           (progress-displayer--message (progress-displayer-display-progress progress-displayer)))
           (completed
            ;; Restore the Emacs `message' native function.
            (fset #'message emacs-message)
-           (progress-displayer-display-progress progress-displayer))
+           (progress-displayer--message (progress-displayer-display-progress progress-displayer)))
           (stopped
            ;; Restore the Emacs `message' native function.
            (fset #'message emacs-message)))))))
@@ -177,7 +189,7 @@ if `none', the message is not displayed."
   (:documentation "Very basic progress displayer."))
 
 (cl-defmethod progress-displayer-display-progress ((progress-displayer minimal-message-progress-displayer))
-  (let ((progress (progress-displayer-progress progress)))
+  (let ((progress (progress-displayer-progress progress-displayer)))
     (format "%s (%d %%)"
             (progress-formatted-status-message progress)
             (progress-percentage progress))))
