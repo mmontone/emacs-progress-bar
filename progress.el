@@ -87,7 +87,7 @@ See `progress-update-functions' hook."
       (truncate (* current-step 100.0) total-steps))))
 
 (defun progress-update (progress &rest args)
-  "Update PROGRESS and display it.
+  "Update PROGRESS using ARGS.
 ARGS is a property-list of slot-name and value.
 
 Example:
@@ -104,8 +104,7 @@ Example:
     (with-slots (current-step total-steps) progress
       (when (and total-steps (> (+ current-step inc) total-steps))
         (error "current-step > total-steps"))
-      (cl-incf current-step inc)
-      (progress-notify 'updated progress))))
+      (progress-update progress 'current-step (+ current-step inc)))))
 
 (defun progress--format-status-message (progress message)
   (cl-etypecase message
@@ -163,10 +162,10 @@ INITARGS used for creating a `progress' instance."
                            :current-step 0
                            args))))
     (with-progress (progress)
-        (dolist (x sequence)
-          (setf (progress-data progress) x)
-          (funcall func x)
-          (progress-incf progress)))))
+                   (dolist (x sequence)
+                     (setf (progress-data progress) x)
+                     (funcall func x)
+                     (progress-incf progress)))))
 
 (defmacro progress-dolist (spec &rest body)
   "Like DOLIST but displaying a progress-bar as items in the list are processed.
@@ -196,10 +195,10 @@ Example:
                              :current-step 0
                              ,@args))))
          (with-progress (,progress)
-             (dotimes (,var ,times)
-               (setf (progress-bar-data ,progress) ,var)
-               ,@body
-               (progress-bar-incf ,progress)))))))
+                        (dotimes (,var ,times)
+                          (setf (progress-bar-data ,progress) ,var)
+                          ,@body
+                          (progress-bar-incf ,progress)))))))
 
 (provide 'progress)
 
