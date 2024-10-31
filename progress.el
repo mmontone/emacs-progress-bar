@@ -26,18 +26,11 @@
 
 (require 'cl-lib)
 (require 'eieio)
-(require 'progress-displayer)
 
 (defvar progress-update-functions '()
   "An abnormal hook for getting notified of progress updates.
 Functions get called with a progress event, and a progress instance.
-Progress events can be either `started', `updated' or `completed'")
-
-(defvar progress-displayer-maker 'progress-reporter-maker
-  "Configured progress-displayer.")
-
-(defvar progress-current-displayer nil
-  "Current progress-displayer")
+Progress events can be either `started', `updated', `completed' or `stopped'.")
 
 (defclass progress ()
   ((status-message :initform nil
@@ -101,20 +94,17 @@ Example:
 (progress-update pg 'current-step 2 'data 'foo)"
   (cl-loop for (slot value) on args by 'cddr
            do (setf (slot-value progress slot) value))
-  (progress-display progress)
   (if (progress-completed-p progress)
       (progress-notify 'completed progress)
     (progress-notify 'updated progress)))
 
-(defun progress-incf (progress &optional increment display)
+(defun progress-incf (progress &optional increment)
   "Increment step in PROGRESS."
   (let ((inc (or increment 1)))
     (with-slots (current-step total-steps) progress
       (when (and total-steps (> (+ current-step inc) total-steps))
         (error "current-step > total-steps"))
       (cl-incf current-step inc)
-      (when display
-        (progress-display progress))
       (progress-notify 'updated progress))))
 
 (defun progress--format-status-message (progress message)
@@ -140,24 +130,16 @@ Example:
       (t
        (progress--format-status-message progress status-message)))))
 
-(defun progress-update-display ()
-  "Update progress display."
-  (progress-displayer-display-progress progress-current-displayer))
-
 (defun call-with-progress (progress func)
   "Call FUNC using PROGRESS.
 Sets up a context PROGRESS for evaluating FUNC."
-  (if (< (progress-total-steps progress) progress-display-min-steps)
-      ;; If total-steps are not enough, then do nothing with the progress-bar
-      (funcall func progress)
-    ;; Replace the implementation of `message' temporarily, so that
-    ;; messages sent by FUNC are shown together with the progress bar.
-    (progn
-      (progress-notify 'started progress)
-      (progress-displayer-call-with-displayer progress-displayer func)
-      (setf (progress-data progress) nil)
-      (progress-displayer-display-progress progress-displayer)
-      (progress-notify 'completed progress))))
+  (progress-notify 'started progress)
+  (setf (progress-data progress) nil)
+  (unwind-protect
+      (funcall func)
+    (if (progress-completed-p progress)
+        (progress-notify 'completed progress)
+      (progress-notify 'stopped progress))))
 
 (defmacro with-progress (spec &rest body)
   "Create a `progress' instance binding SPEC in BODY scope.
@@ -170,10 +152,6 @@ INITARGS used for creating a `progress' instance."
            (call-with-progress ,var (lambda (,var) ,@body)))
       `(let ((,var (make-progress ,@initargs)))
          (call-with-progress ,var (lambda (,var) ,@body))))))
-
-(defun progress-make-displayer (progress &rest args)
-  "Create a progress-displayer for PROGRESS."
-  (apply progress-displayer-maker progress args))
 
 ;; Utilities
 
@@ -189,7 +167,7 @@ INITARGS used for creating a `progress' instance."
         (dolist (x sequence)
           (setf (progress-data progress) x)
           (funcall func x)
-          (progress-incf progress 1 t)))))
+          (progress-incf progress)))))
 
 (defmacro progress-dolist (spec &rest body)
   "Like DOLIST but displaying a progress-bar as items in the list are processed.
@@ -207,8 +185,8 @@ Example:
   (cl-destructuring-bind (var list &rest args) spec
     `(progress-dolist (lambda (,var) ,@body) ,list ,@args)))
 
-(defmacro dotimes-with-progress-bar (spec &rest body)
-  "Like `dotimes' but with a progress bar."
+(defmacro progress-dotimes (spec &rest body)
+  "Like `dotimes' but with progress."
   (declare (indent 2))
   (let ((progress (gensym "progress-")))
     (cl-destructuring-bind (var times &rest args) spec
@@ -220,9 +198,9 @@ Example:
                              ,@args))))
          (with-progress (,progress)
              (dotimes (,var ,times)
-               (setf (progress-bar-data ,progress-bar) ,var)
+               (setf (progress-bar-data ,progress) ,var)
                ,@body
-               (progress-bar-incf ,progress-bar 1 t)))))))
+               (progress-bar-incf ,progress)))))))
 
 (provide 'progress)
 

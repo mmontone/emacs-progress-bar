@@ -38,15 +38,41 @@
 
 (defcustom progress-displayer-message-layout
   'concatenate
-  "How to display messages when in a progress display scope.
+  "How to display messages by echo-area-progress-displayers.
 If `concatenate', the message is concatenated to the right of the progress bar.
 If `newline', the message is inserted after a new line.
 If `dynamic', the message is either concatenated or inserted after a new line
-depending on its length."
+depending on its length.
+if `none', the message is not displayed."
   :type '(choice (const concatenate)
                  (const newline)
-                 (const dynamic))
+                 (const dynamic)
+                 (const none))
   :group 'progress)
+
+(defvar progress-displayer-update-handlers
+  (make-hash-table :weakness 'key)
+  "A table with progress update handlers for displayers.")
+
+(defvar progress-displayer-class nil)
+
+(defun progress-displayer-update-function (event progress)
+  "Handle progress updates and handle their display."
+
+  (when (eql event 'start)
+    ;; If starting, create a progress-displayer and register an update handler
+    (let ((progress-displayer (make-instance progress-displayer-class
+                                             :progress progress)))
+      (puthash progress (progress-displayer-update-handler progress-displayer)
+               progress-displayer-update-handlers)))
+
+  ;; Send the event
+  (let ((update-handler (gethash progress progress-displayer-update-handlers)))
+    (when update-handler
+      (funcall update-handler event progress))))
+
+;; Register to receive progress updates and handle their display:
+(add-hook 'progress-update-functions #'progress-displayer-update-function)
 
 (defvar progress-displayer--message (symbol-function 'message))
 
@@ -83,9 +109,10 @@ depending on its length."
   (with-slots (progress total-steps created-time)
       (progress-displayer-progress progress-bar)
     (with-slots (min-time displayed-time min-change displayed-percentage)
-        progress-bar
+        progress-displayer
       (let ((now (float-time))
             (percentage (progress-percentage progress-bar)))
+        ;; Progress is not displayed unless the following conditions are met
         (when (or (progress-completed-p progress-bar)
                   (and (>= total-steps progress-displayer-min-steps)
                        (>= now (+ displayed-time min-time))
@@ -94,19 +121,13 @@ depending on its length."
           (call-next-method))))))
 
 (defclass echo-area-progress-displayer (progress-displayer)
-  ())
+  ()
+  (:documentation "A `progress-displayer' that uses the echo area for displaying progress."))
 
-(cl-defgeneric progress-displayer-call-with-displayer (progress-displayer func)
-  "Evaluate FUNC in the scope of PROGRESS-DISPLAYER.")
+(cl-defgeneric progress-displayer-update-handler (progress-displayer)
+  "Return a `progress' event handler for PROGRESS-DISPLAYER.")
 
-(cl-defmethod progress-displayer-call-with-displayer :around (progress-displayer func)
-  (let ((progress-current-displayer progress-displayer))
-    (call-next-method)))
-
-(cl-defmethod progress-displayer-call-with-displayer (progress-displayer func)
-  (progress-displayer-display-progress progress-displayer))
-
-(cl-defmethod progress-displayer-call-with-displayer ((progress-displayer echo-area-progress-displayer) func)
+(cl-defmethod progress-displayer-update-handler ((progress-displayer echo-area-progress-displayer))
   (let ((emacs-message (symbol-function #'message)))
     (cl-flet ((progress-displayer-message (msg &rest args)
                 ;; This is only for logging. Can we log the message
@@ -135,8 +156,20 @@ depending on its length."
                       (none
                        (apply emacs-message (progress-displayer-display-progress progress-displayer) args))
                       )))))
-      (cl-letf (((symbol-function #'message) #'progress-displayer-message))
-        (funcall func progress)))))
+      (lambda  (event progress)
+        (cl-ecase event
+          (started
+           (fset #'message #'progress-displayer-message)
+           (progress-displayer-display-progress progress-displayer))
+          (updated
+           (progress-displayer-display-progress progress-displayer))
+          (completed
+           ;; Restore the Emacs `message' native function.
+           (fset #'message emacs-message)
+           (progress-displayer-display-progress progress-displayer))
+          (stopped
+           ;; Restore the Emacs `message' native function.
+           (fset #'message emacs-message)))))))
 
 (provide 'progress-displayer)
 
