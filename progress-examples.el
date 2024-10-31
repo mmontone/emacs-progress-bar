@@ -3,6 +3,8 @@
 ;; Switch between these to change the progress displayer
 (setq progress-displayer-class 'minimal-message-progress-displayer)
 (setq progress-displayer-class 'progress-bar)
+(setq progress-displayer-class 'progress-reporter-displayer)
+(setq progress-displayer-class nil)
 
 (progress-dotimes (x 30)
     (sit-for 0.4))

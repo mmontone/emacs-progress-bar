@@ -70,7 +70,7 @@ if `none', the message is not displayed."
 (defun progress-displayer-update-function (event progress)
   "Handle progress updates and handle their display."
 
-  (when (eql event 'started)
+  (when (and (eql event 'started) progress-displayer-class)
     ;; If starting, create a progress-displayer and register an update handler
     (let ((progress-displayer (make-instance progress-displayer-class
                                              :progress progress)))
