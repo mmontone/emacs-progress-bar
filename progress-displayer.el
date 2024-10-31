@@ -96,13 +96,13 @@ if `none', the message is not displayed."
              :initarg :progress
              :accessor progress-displayer-progress)
    (min-time
-    :initform (eval progress-displayer-min-time)
+    :initform (symbol-value 'progress-displayer-min-time)
     :type float
     :initarg :min-time
     :accessor progress-displayer-min-time
     :documentation "The minimum time interval between progress bar displays.")
    (min-change
-    :initform (eval progress-displayer-min-change)
+    :initform (symbol-value 'progress-displayer-min-change)
     :initarg :min-change
     :type integer
     :accessor progress-displayer-min-change
@@ -190,9 +190,15 @@ if `none', the message is not displayed."
 
 (cl-defmethod progress-displayer-display-progress ((progress-displayer minimal-message-progress-displayer))
   (let ((progress (progress-displayer-progress progress-displayer)))
-    (format "%s (%d %%)"
-            (progress-formatted-status-message progress)
-            (progress-percentage progress))))
+    (with-slots (status-message current-step total-steps) progress
+      (with-output-to-string
+        (when status-message
+          (princ (progress-formatted-status-message progress))
+          (princ " "))
+        (princ (format "[%d of %d]" current-step total-steps))
+        (princ " (")
+        (princ (progress-percentage progress))
+        (princ "%%)")))))
 
 (provide 'progress-displayer)
 
