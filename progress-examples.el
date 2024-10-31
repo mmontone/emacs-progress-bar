@@ -15,7 +15,7 @@
   (with-progress (pg :status-message "Hello" :total-steps 4)
       (cl-loop for x from 1 to 4
                do
-               (progress-incf pg 1 t)
+               (progress-incf pg)
                (message "This is a message!!: %s" x)
                (sit-for 0.3)
                )))
