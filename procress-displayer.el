@@ -247,5 +247,27 @@ the center."
            args)
     (svg-image svg :ascent 'center)))
 
+(defvar procress--original-mode-line mode-line-format)
+
+(defun procress--setup-mode-line ()
+  (push '(:eval (procress-modeline-string))
+        mode-line-format))
+
+(defun procress--restore-mode-line ()
+  (setq mode-line-format procress--original-mode-line))
+
+(defclass procress-progress-displayer (progress-displayer)
+  ())
+
+(cl-defmethod progress-displayer-update-handler ((progress-displayer procress-progress-displayer))
+  (lambda (event _progress)
+    (cl-ecase event
+      (started (procress--setup-mode-line))
+      (updated (procress-progress nil nil))
+      (completed (procress--restore-mode-line))
+      (stopped (procress--restore-mode-line)))))
+
+(procress-load-default-svg-images)
+
 (provide 'procress-displayer)
 ;;; procress-displayer.el ends here

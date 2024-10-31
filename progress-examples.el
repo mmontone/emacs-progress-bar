@@ -4,6 +4,7 @@
 (setq progress-displayer-class 'minimal-message-progress-displayer)
 (setq progress-displayer-class 'progress-bar) ;; load progress-bar.el
 (setq progress-displayer-class 'progress-reporter-displayer) ;; load progress-reporter.el
+(setq progress-displayer-class 'procress-progress-displayer) ;; load procress-displayer.el (needs svg support)
 (setq progress-displayer-class nil)
 
 (progress-dotimes (x 30)

@@ -132,6 +132,10 @@ if `none', the message is not displayed."
                        (>= percentage (+ displayed-percentage min-change))))
           (cl-call-next-method))))))
 
+(cl-defmethod progress-displayer-update-handler (progress-displayer)
+  (lambda (_event _progress)
+    (progress-displayer-display-progress progress-displayer)))
+
 (defclass echo-area-progress-displayer (progress-displayer)
   ()
   (:documentation "A `progress-displayer' that uses the echo area for displaying progress."))
