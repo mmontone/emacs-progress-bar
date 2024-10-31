@@ -54,7 +54,8 @@ if `none', the message is not displayed."
   (make-hash-table :weakness 'key)
   "A table with progress update handlers for displayers.")
 
-(defvar progress-displayer-class nil)
+(defvar progress-displayer-class 'minimal-message-progress-displayer
+  "The progress-displayer class to instantiate to display progresses.")
 
 (defun progress-displayer-update-function (event progress)
   "Handle progress updates and handle their display."
@@ -170,6 +171,16 @@ if `none', the message is not displayed."
           (stopped
            ;; Restore the Emacs `message' native function.
            (fset #'message emacs-message)))))))
+
+(defclass minimal-message-progress-displayer (echo-area-progress-displayer)
+  ()
+  (:documentation "Very basic progress displayer."))
+
+(cl-defmethod progress-displayer-display-progress ((progress-displayer minimal-message-progress-displayer))
+  (let ((progress (progress-displayer-progress progress)))
+    (format "%s (%d %%)"
+            (progress-formatted-status-message progress)
+            (progress-percentage progress))))
 
 (provide 'progress-displayer)
 
