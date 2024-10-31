@@ -109,8 +109,7 @@ Example:
 
 (defun progress--format-status-message (progress message)
   (cl-etypecase message
-    ((or symbol function)
-     (funcall message progress))
+    (function (funcall message progress))
     (string message)))
 
 (defun progress-formatted-status-message (progress)
