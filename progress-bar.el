@@ -1,4 +1,4 @@
-;;; progress-bar.el --- A progress bar in the echo area              -*- lexical-binding: t; -*-
+;;; progress-bar.el --- A progress displayer with a progress bar in the echo area              -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024 Free Software Foundation, Inc.
 
@@ -22,24 +22,7 @@
 
 ;;; Commentary:
 
-;; A progress bar in the echo area.
-;;
-;; This package contains the basic implementation.  For integration of progress-bar
-;; into common Emacs commands and behaviors, install progress-bar-integrations package.
-;;
-;; Usage:
-;;
-;; The preferred method for using a progress-bar is via the utility functions:
-;; `dolist-with-progress-bar', `dotimes-with-progress-bar' and `mapc-with-progress-bar'.
-;;
-;; Example:
-;;
-;; (dolist-with-progress-bar (x (cl-loop for i from 1 to 10 collect i)
-;;                              :status-message (list "Started ..."
-;;                                                    (lambda (pb)
-;;                                                      (format "Processing %s..." (progress-bar-data pb)))
-;;                                                    "Completed!"))
-;;     (sit-for (seq-random-elt '(0.3 0.4 0.5))))
+;; A progress displayer with a progress bar in the echo areaA progress bar in the echo area.
 ;;
 ;; TODO:
 ;; - Consider putting event notification in call-with-progress-bar instead of in the utilities.
@@ -84,17 +67,6 @@ See `format' documentation."
 
 (defclass progress-bar (echo-area-progress-displayer)
   ())
-
-(cl-defun make-progress-bar (progress &key (min-time progress-bar-min-time)
-                                      (min-change progress-bar-min-change))
-  "Create a PROGRESS-BAR instance."
-  (make-instance 'progress-bar
-                 :progress progress
-                 :status-message status-message
-                 :total-steps total-steps
-                 :current-step current-step
-                 :min-time min-time
-                 :min-change min-change))
 
 (cl-defmethod progress-displayer-display-progress ((progress-bar progress-bar))
   (with-slots (progress) progress-bar

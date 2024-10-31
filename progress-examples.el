@@ -1,7 +1,11 @@
 (require 'progress)
 
-(progress-dotimes (x 50)
-    (sit-for 0.1))
+;; Switch between these to change the progress displayer
+(setq progress-displayer-class 'minimal-message-progress-displayer)
+(setq progress-displayer-class 'progress-bar)
+
+(progress-dotimes (x 30)
+    (sit-for 0.4))
 
 (with-progress (pg :status-message "Hello" :total-steps 10)
     (cl-loop for x from 1 to 10
