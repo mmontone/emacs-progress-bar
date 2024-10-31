@@ -94,9 +94,9 @@ Example:
 (progress-update pg 'current-step 2 'data 'foo)"
   (cl-loop for (slot value) on args by 'cddr
            do (setf (slot-value progress slot) value))
-  (if (progress-completed-p progress)
-      (progress-notify 'completed progress)
-    (progress-notify 'updated progress)))
+  (progress-notify 'updated progress)
+  (when (progress-completed-p progress)
+    (progress-notify 'completed progress)))
 
 (defun progress-incf (progress &optional increment)
   "Increment step in PROGRESS."
@@ -130,13 +130,12 @@ Example:
 
 (defun call-with-progress (progress func)
   "Call FUNC using PROGRESS.
-Sets up a context PROGRESS for evaluating FUNC."
+Triggers PROGRESS events."
   (progress-notify 'started progress)
   (setf (progress-data progress) nil)
   (unwind-protect
-      (funcall func)
-    (if (progress-completed-p progress)
-        (progress-notify 'completed progress)
+      (funcall func progress)
+    (when (not (progress-completed-p progress))
       (progress-notify 'stopped progress))))
 
 (defmacro with-progress (spec &rest body)
@@ -154,21 +153,21 @@ INITARGS used for creating a `progress' instance."
 ;; Utilities
 
 (defun progress-mapc (func sequence &rest args)
-  "Like `mapc' but using a progress-bar."
+  "Like `mapc' but using a progress."
   (let ((progress (if (= (length args) 1)
                       (car args)
                     (apply #'make-progress
                            :total-steps (length sequence)
                            :current-step 0
                            args))))
-    (with-progress (progress)
-                   (dolist (x sequence)
-                     (setf (progress-data progress) x)
-                     (funcall func x)
-                     (progress-incf progress)))))
+    (with-progress (progress progress)
+        (dolist (x sequence)
+          (setf (progress-data progress) x)
+          (funcall func x)
+          (progress-incf progress)))))
 
 (defmacro progress-dolist (spec &rest body)
-  "Like DOLIST but displaying a progress-bar as items in the list are processed.
+  "Like DOLIST but displaying a progress as items in the list are processed.
 ARGS are arguments for `make-progress'.
 
 \(fn (VAR LIST ARGS...) BODY...)
@@ -181,7 +180,7 @@ Example:
    (sit-for 0.3))"
   (declare (indent 2))
   (cl-destructuring-bind (var list &rest args) spec
-    `(progress-dolist (lambda (,var) ,@body) ,list ,@args)))
+    `(progress-mapc (lambda (,var) ,@body) ,list ,@args)))
 
 (defmacro progress-dotimes (spec &rest body)
   "Like `dotimes' but with progress."
@@ -194,11 +193,11 @@ Example:
                              :total-steps ,times
                              :current-step 0
                              ,@args))))
-         (with-progress (,progress)
-                        (dotimes (,var ,times)
-                          (setf (progress-bar-data ,progress) ,var)
-                          ,@body
-                          (progress-bar-incf ,progress)))))))
+         (with-progress (,progress ,progress)
+             (dotimes (,var ,times)
+               (setf (progress-data ,progress) ,var)
+               ,@body
+               (progress-incf ,progress)))))))
 
 (provide 'progress)
 
