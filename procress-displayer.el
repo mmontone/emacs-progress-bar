@@ -26,6 +26,9 @@
 
 ;;; Code:
 
+(require 'progress)
+(require 'progress-displayer)
+
 (defgroup procress nil
   "Show progress or a process."
   :group 'tools
@@ -76,10 +79,15 @@ The car is the index used for the cdr.")
       (propertize
        (funcall
         procress-modeline-function
-        (propertize "-"
-                    'display (nth (car procress--current-frame)
-                                  (symbol-value
-                                   (cdr procress--current-frame)))))
+        (concat 
+         (propertize "-"
+                     'display (nth (car procress--current-frame)
+                                   (symbol-value
+                                    (cdr procress--current-frame))))
+         (when procress--progress
+           (format "[%s/%s]" (progress-current-step procress--progress)
+                   (progress-total-steps procress--progress)))
+         ))
        'help-echo procress-modeline-help-string
        'keymap
        `(keymap (mode-line keymap
@@ -248,21 +256,24 @@ the center."
     (svg-image svg :ascent 'center)))
 
 (defvar procress--original-mode-line mode-line-format)
+(defvar procress--progress nil)
 
-(defun procress--setup-mode-line ()
+(defun procress--setup-mode-line (progress)
+  (setq procress--progress progress)
   (push '(:eval (procress-modeline-string))
         mode-line-format))
 
 (defun procress--restore-mode-line ()
-  (setq mode-line-format procress--original-mode-line))
+  (setq mode-line-format procress--original-mode-line)
+  (setq procress--progress nil))
 
 (defclass procress-progress-displayer (progress-displayer)
   ())
 
 (cl-defmethod progress-displayer-update-handler ((progress-displayer procress-progress-displayer))
-  (lambda (event _progress)
+  (lambda (event progress)
     (cl-ecase event
-      (started (procress--setup-mode-line))
+      (started (procress--setup-mode-line progress))
       (updated (procress-progress nil nil))
       (completed (procress--restore-mode-line))
       (stopped (procress--restore-mode-line)))))
