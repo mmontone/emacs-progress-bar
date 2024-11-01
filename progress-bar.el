@@ -57,7 +57,7 @@
   :type 'integer
   :group 'progress-bar)
 
-(defcustom progress-bar-format-string " [%d of %d](%d%%%%)"
+(defcustom progress-bar-format-string " [%d/%d] %d%%%%"
   "String for formatting the progress bar.
 Arguments passed are current-step, total-steps and completed percentage.
 Consider using field number arguments for more flexibility.

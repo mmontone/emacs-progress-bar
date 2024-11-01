@@ -162,13 +162,13 @@ If a `progress' has already been created, then update its `current-step' and ret
 (defun progress-reporter-done-override (reporter)
   (progress-notify 'completed (progress-reporter->progress reporter 0)))
 
-(advice-add 'progress-reporter-do-update :around 'progress-around-reporter)
-(advice-add 'progress-reporter-done :override 'progress-reporter-done-override)
+(advice-add 'progress-reporter-do-update :around #'progress-around-reporter)
+(advice-add 'progress-reporter-done :override #'progress-reporter-done-override)
 
 (when nil
   (let ((progress-reporter
          (make-progress-reporter "Collecting mana for Emacs..."
-                                 0  500)))
+                                 0  100)))
     (dotimes (k 500)
       (sit-for 0.01)
       (progress-reporter-update progress-reporter k))

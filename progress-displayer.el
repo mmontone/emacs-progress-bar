@@ -199,10 +199,10 @@ if `none', the message is not displayed."
         (when status-message
           (princ (progress-formatted-status-message progress))
           (princ " "))
-        (princ (format "[%d of %d]" current-step total-steps))
-        (princ " (")
+        (princ (format "[%d/%d]" current-step total-steps))
+        (princ " ")
         (princ (progress-percentage progress))
-        (princ "%%)")))))
+        (princ "%%")))))
 
 (provide 'progress-displayer)
 
