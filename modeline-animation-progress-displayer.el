@@ -1,4 +1,4 @@
-;;; procress-displayer.el --- Progress displayer on the mode-line with animation  -*- lexical-binding: t; -*-
+;;; modeline-animation-progress-displayer.el --- Progress displayer on the mode-line with animation  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Mariano Montone
 
@@ -267,10 +267,10 @@ the center."
   (setq mode-line-format procress--original-mode-line)
   (setq procress--progress nil))
 
-(defclass procress-progress-displayer (progress-displayer)
+(defclass modeline-animation-progress-displayer (progress-displayer)
   ())
 
-(cl-defmethod progress-displayer-update-handler ((progress-displayer procress-progress-displayer))
+(cl-defmethod progress-displayer-update-handler ((progress-displayer modeline-animation-progress-displayer))
   (lambda (event progress)
     (cl-ecase event
       (started (procress--setup-mode-line progress))
@@ -280,5 +280,5 @@ the center."
 
 (procress-load-default-svg-images)
 
-(provide 'procress-displayer)
-;;; procress-displayer.el ends here
+(provide 'modeline-animation-progress-displayer)
+;;; modeline-animation-progress-displayer.el ends here
