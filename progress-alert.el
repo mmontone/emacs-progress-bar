@@ -1,4 +1,4 @@
-;;; progress-bar-alert.el --- Integration of alert and progress-bar  -*- lexical-binding: t; -*-
+;;; progress-alert.el --- Integration of alert and progress  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2024  Mariano Montone
 
@@ -25,22 +25,22 @@
 ;;; Code:
 
 (require 'alert)
-(require 'progress-bar)
+(require 'progress)
 
-(defun progress-bar-alerter (event progress-bar)
+(defun progress-alerter (event progress)
   (case event
     (started
-     (alert (format "Started: %s" (progress-bar-formatted-status-message progress-bar))))
+     (alert (format "Started: %s" (progress-formatted-status-message progress))))
     (completed
-     (alert (format "Completed: %s" (progress-bar-formatted-status-message progress-bar))))))
+     (alert (format "Completed: %s" (progress-formatted-status-message progress))))))
 
-(add-hook 'progress-bar-update-functions #'progress-bar-alerter)
+(add-hook 'progress-update-functions #'progress-alerter)
 
 ;; test
 (when nil
-  (dotimes-with-progress-bar (x 5 :status-message "Doing something")
+  (progress-dotimes (x 5 :status-message "Doing something")
       (sit-for 0.5)))
 
-(provide 'progress-bar-alert)
+(provide 'progress-alert)
 
-;;; progress-bar-alert.el ends here
+;;; progress-alert.el ends here
