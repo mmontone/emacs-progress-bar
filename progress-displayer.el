@@ -64,6 +64,9 @@ if `none', the message is not displayed."
   (make-hash-table :weakness 'key)
   "A table with progress update handlers for displayers.")
 
+;; See to convert this to a customized variable; let progress-displayer
+;; implementations register their class, and then list it as one of the choices.
+;; See: https://stackoverflow.com/a/73116631/4249433
 (defvar progress-displayer-class 'minimal-message-progress-displayer
   "The progress-displayer class to instantiate to display progresses.")
 
