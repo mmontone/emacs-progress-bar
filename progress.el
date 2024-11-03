@@ -36,7 +36,9 @@ Progress events can be either `started', `updated', `completed' or `stopped'.")
   ((status-message :initform nil
                    :initarg :status-message
                    :accessor progress-status-message
-                   :documentation "The status-message can be either a status-formatter or a list of three status-formatters, the first applied when the progress starts, the second applied for each element processed, the third when the progress completes.
+                   :documentation "The status-message can be either a status-formatter or a list of three status-formatters,
+the first applied when the progress starts, the second applied for each element processed,
+the third when the progress completes.
 A status-formatter is either a string or a function that takes a progress instance and returns a string.")
    (total-steps :type integer
                 :initarg :total-steps
