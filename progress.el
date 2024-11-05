@@ -22,6 +22,12 @@
 
 ;; Model for progress.
 
+;; TODO:
+;; - Add estimation calculations at model level.
+;; Add display option to display estimations, enabled, disabled, or dynamic,
+;; that displays estimation if progress is taking more than N seconds and
+;; is estimated to complete in more than M seconds.
+
 ;;; Code:
 
 (require 'cl-lib)
