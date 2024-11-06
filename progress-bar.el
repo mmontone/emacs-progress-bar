@@ -28,6 +28,8 @@
 ;; - Consider putting event notification in call-with-progress-bar instead of in the utilities.
 ;; - Consider implementing progress-bars with no total-steps specified.
 ;; - Consider an option for hiding the progress-bar display after N seconds after completion.
+;; - Have two slots for data, one progress-data for the global task being performed; another step-data, for the task at current step being performed.
+;; - Add total completion time calculation.
 
 ;;; Code:
 
