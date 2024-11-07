@@ -156,6 +156,21 @@ Example:
       (t
        (progress--format-status-message progress status-message)))))
 
+(defun progress-rate (progress)
+  "Rate at which PROGRESS is working."
+  ;; The current time elapsed divided by the number of steps performed
+  (let ((current-time (- (progress-update-time progress)
+                         (progress-created-time progress))))
+    (/ (progress-current-step progress)
+       current-time)))
+
+(defun progress-estimated-remaining-seconds (progress)
+  "The estimated seconds for PROGRESS to complete."
+  ;; steps left * progress rate
+  (let ((steps-left (- (progress-total-steps progress)
+                       (progress-current-step progress))))
+    (* steps-left (progress-rate progress))))
+
 (defun call-with-progress (progress func)
   "Call FUNC using PROGRESS.
 Triggers PROGRESS events."
