@@ -106,6 +106,13 @@ See `progress-update-functions' hook."
     (with-slots (current-step total-steps) progress
       (truncate (* current-step 100.0) total-steps))))
 
+(defun progress-time-to-complete (progress)
+  "Return time needed by PROGRESS to complete."
+  (unless (progress-completed-p progress)
+    (error "Progress not completed"))
+  (with-slots (created-time completed-time) progress
+    (- completed-time created-time)))
+
 (defun progress-update (progress &rest args)
   "Update PROGRESS using ARGS.
 ARGS is a property-list of slot-name and value.
