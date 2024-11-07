@@ -246,6 +246,25 @@ if `none', the message is not displayed."
         (progress-displayer--collect-template-vars template)
       (apply #'format format-string (mapcar #'resolve-var-value vars)))))
 
+(defvar progress-displayer--seconds-in-one-hour 3600)
+(defvar progress-displayer--seconds-in-one-minute 60)
+
+(defun progress-displayer--format-time-in-seconds-minutes-hours (in-seconds)
+  (with-output-to-string
+    (when (>= in-seconds progress-displayer--seconds-in-one-hour)
+      (let ((hours (floor in-seconds progress-displayer--seconds-in-one-hour)))
+        (cl-decf in-seconds (* hours progress-displayer--seconds-in-one-hour))
+        (princ (format " %d hours " hours))))
+    (when (>= in-seconds progress-displayer--seconds-in-one-minute)
+      (let ((minutes (floor in-seconds progress-displayer--seconds-in-one-minute)))
+        (cl-decf in-seconds (* minutes progress-displayer--seconds-in-one-minute))
+        (princ (format "%d minutes " minutes))))
+    (unless (zerop in-seconds)
+      (princ (format "%d seconds" (truncate in-seconds))))))
+
+;; (progress-displayer--format-time-in-seconds-minutes-hours 1000)
+;; (progress-displayer--format-time-in-seconds-minutes-hours 1500)
+
 (provide 'progress-displayer)
 
 ;;; progress-displayer.el ends here
