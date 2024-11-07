@@ -217,6 +217,35 @@ if `none', the message is not displayed."
         (princ (progress-percentage progress))
         (princ "%%")))))
 
+;; Utilities for customizing display formatting
+(defun progress-displayer--collect-template-vars (template)
+  "Parse display TEMPLATE and return list of vars and `format' string."
+  (let ((vars '())
+        (parts '()))
+    (dolist (part (split-string template))
+      (if (char-equal (aref part 0) ?%)
+          (progn
+            (push (substring part 1) vars)
+            (push "%s" parts))
+        (push part parts)))
+    (list vars (mapconcat #'identity (nreverse parts) " "))))
+
+(defun progress-displayer-format-progress (template progress)
+  "Format a string using TEMPLATE and a PROGRESS instance."
+  (cl-flet ((resolve-var-value (var)
+              (pcase var
+                ("percentage" (progress-percentage progress))
+                ("current-step" (progress-current-step progress))
+                ("total-steps" (progress-total-steps progress))
+                ("status-message" (progress-formatted-status-message progress))
+                (t (let ((sym (intern var)))
+                     (if (functionp sym)
+                         (funcall sym progress)
+                       (slot-value progress sym)))))))
+    (cl-destructuring-bind (vars format-string)
+        (progress-displayer--collect-template-vars template)
+      (apply #'format format-string (mapcar #'resolve-var-value vars)))))
+
 (provide 'progress-displayer)
 
 ;;; progress-displayer.el ends here
