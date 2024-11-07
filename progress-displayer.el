@@ -60,6 +60,11 @@ if `none', the message is not displayed."
                  (const none))
   :group 'progress)
 
+(defcustom progress-displayer-display-time-to-complete nil
+  "When to display time taken by progress to complete."
+  :type '(or number boolean)
+  :group 'progress)
+
 (defvar progress-displayer-update-handlers
   (make-hash-table :weakness 'key)
   "A table with progress update handlers for displayers.")
@@ -116,7 +121,12 @@ if `none', the message is not displayed."
                    :documentation "Time of last display.")
    (displayed-percentage :initform 0 :type integer
                          :accessor progress-displayer-displayed-percentage
-                         :documentation "Last percentage displayed.")))
+                         :documentation "Last percentage displayed.")
+   (display-time-to-complete :initarg :display-time-to-complete
+                             :accessor progress-displayer-display-time-to-complete
+                             :type (or boolean integer)
+                             :initform (symbol-value 'progress-displayer-display-time-to-complete)
+                             :documentation "When to display the time taken by the progress to complete. Either a boolean, or a number; if progress takes more that that number, then display.")))
 
 (cl-defgeneric progress-displayer-display-progress (progress-displayer)
   "Specializable generic function for displaying PROGRESS-DISPLAYER.")
