@@ -38,6 +38,9 @@
 (require 'cl-lib)
 (require 'eieio)
 
+(cl-deftype progress-event ()
+  `(member started updated completed stopped))
+
 (defvar progress-update-functions '()
   "An abnormal hook for getting notified of progress updates.
 Functions get called with a progress event, and a progress instance.
@@ -67,7 +70,9 @@ Often contains current element being processed.")
    (updated-time :initform 0.0
                  :type float
                  :accessor progress-update-time
-                 :documentation "Time of last update.")))
+                 :documentation "Time of last update.")
+   (completed-time :type float
+                   :accessor progress-completed-time)))
 
 (cl-defun make-progress (&key status-message total-steps (current-step 0))
   "Create a `progress' instance."
@@ -89,6 +94,8 @@ Often contains current element being processed.")
 (defun progress-notify (event progress)
   "Notify EVENT for PROGRESS.
 See `progress-update-functions' hook."
+  (cl-check-type event progress-event)
+  (cl-check-type progress progress)
   (dolist (hook progress-update-functions)
     (funcall hook event progress)))
 
@@ -109,6 +116,7 @@ Example:
            do (setf (slot-value progress slot) value))
   (progress-notify 'updated progress)
   (when (progress-completed-p progress)
+    (setf (progress-completed-time progress) (float-time))
     (progress-notify 'completed progress)))
 
 (defun progress-incf (progress &optional increment)
@@ -174,10 +182,10 @@ INITARGS used for creating a `progress' instance."
                            :current-step 0
                            args))))
     (with-progress (progress progress)
-        (dolist (x sequence)
-          (setf (progress-data progress) x)
-          (funcall func x)
-          (progress-incf progress)))))
+                   (dolist (x sequence)
+                     (setf (progress-data progress) x)
+                     (funcall func x)
+                     (progress-incf progress)))))
 
 (defmacro progress-dolist (spec &rest body)
   "Like DOLIST but displaying a progress as items in the list are processed.
@@ -207,10 +215,10 @@ Example:
                              :current-step 0
                              ,@args))))
          (with-progress (,progress ,progress)
-             (dotimes (,var ,times)
-               (setf (progress-data ,progress) ,var)
-               ,@body
-               (progress-incf ,progress)))))))
+                        (dotimes (,var ,times)
+                          (setf (progress-data ,progress) ,var)
+                          ,@body
+                          (progress-incf ,progress)))))))
 
 (provide 'progress)
 
